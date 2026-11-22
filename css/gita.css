@@ -742,7 +742,8 @@ details.full summary {
 }
 .set input[type="url"],
 .set input[type="password"],
-.set select {
+.set select,
+.set .rem-code {
   width: 100%;
   margin-top: 4px;
   padding: 10px 12px;
@@ -773,4 +774,9 @@ details.full summary {
   .scene-img {
     opacity: 1;
   }
+}
+.set .rem-code {
+  font: 13px/1.4 ui-monospace, Menlo, monospace;
+  word-break: break-all;
+  resize: none;
 }

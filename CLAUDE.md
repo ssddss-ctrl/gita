@@ -98,3 +98,9 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   root; dev scripts to `scripts/`; `scripts/serve.mjs` replaces the briefing's `serve.py`
   (serves the repo at `/gita/`, like Pages). The briefing card and `gita:summary` were
   removed. Progress moves to a new Home Screen app via Settings → Export / Import progress.
+- 2026-11-22: Persistent storage requested (`navigator.storage.persist()`) at start and after
+  each PDF import; a cleared book with saved progress shows a recovery screen.
+- 2026-11-22: Morning reminder: own VAPID key pair (public key in `js/reminder.mjs`, private
+  key in secret `VAPID_PRIVATE_KEY`); subscriptions in secret `PUSH_SUBSCRIPTIONS`;
+  `reminder.yml` runs at 11:45 and 12:45 UTC and sends only when it's 7 a.m. in New York.
+  The alert is the same every day because the workflow can't see progress on the phone.

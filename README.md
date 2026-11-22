@@ -24,6 +24,12 @@ You learn one verse a day for 100 days, across all 18 chapters in book order.
   so load the PDF there, not in a Safari tab.
 - **Moving progress** (e.g. from the old room in the Morning Briefing app): Settings →
   Export progress on the old one, then Settings → Import progress here.
+- **Morning reminder:** in the Home Screen app, Settings → Morning reminder → Turn on. Copy the
+  setup code into the `PUSH_SUBSCRIPTIONS` repo secret (or send it to Claude to do it). A
+  scheduled workflow (`.github/workflows/reminder.yml`) sends one alert at about 7:45 a.m.
+  New York time; it commits `.github/keepalive` monthly so GitHub keeps the schedule on.
+- **The book is kept:** the app asks the phone for permanent storage. If the phone still
+  clears it, the app asks for the PDF again and your progress stays.
 - **Scenes** need a free Cloudflare account once: see `worker/gita-scenes/README.md`.
   Without it, the app shows a gradient or a kept painting.
 

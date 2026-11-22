@@ -12,6 +12,7 @@ import {
 import * as P from "./progress.mjs";
 import * as Speech from "./speech.mjs";
 import * as Scene from "./scene.mjs";
+import * as Reminder from "./reminder.mjs";
 
 const root = document.getElementById("gita");
 const DEV = new URLSearchParams(location.search).has("dev");
@@ -584,6 +585,7 @@ function renderSettings() {
     <label>Voice <select id="voice"><option value="">Default English voice</option>${voices.map((v) => `<option ${v.name === settings.voice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
     <label>Speed <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="${settings.rate}"> <span id="rate-val">${settings.rate}×</span></label>
     <button class="g-btn" id="test-voice">Try the voice</button></section>
+  <section class="set" id="reminder"><h2>Morning reminder</h2></section>
   <section class="set"><h2>Weekend recap</h2>
     <label class="row"><input type="checkbox" id="recap" ${settings.recap ? "checked" : ""}> Offer a recap of the week's verses on Saturdays and Sundays</label></section>
   <section class="set"><h2>Scenes</h2>
@@ -601,6 +603,7 @@ function renderSettings() {
   <section class="set"><h2>About</h2><p>Translation and commentary: Swami Chinmayananda, <em>Holy Geeta</em>, read from your own copy on this device. Sanskrit: IIT Kanpur Gita Supersite. Bridges marked "not from the book" are short notes written for this app.</p></section>
   ${DEV ? devPanel() : ""}`;
   const $ = (s) => root.querySelector(s);
+  Reminder.mount($("#reminder"));
   $("#pdf").onchange = async () => {
     const file = $("#pdf").files[0];
     if (!file) return;

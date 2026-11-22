@@ -181,6 +181,7 @@ for (const view of ["verses", "memorize/1", "gallery", "settings", "recap"]) {
 // 7. The book is kept: Settings says so, and a cleared book shows the recovery screen.
 await page.goto(`${BASE}/gita/?dev=1#/settings`, { waitUntil: "networkidle0" });
 ok((await text("#kept")).length > 10, "settings says whether the book is kept permanently");
+ok((await text("#reminder")).includes("7:45"), "settings offers the morning reminder");
 await page.evaluate(
   () =>
     new Promise((resolve, reject) => {

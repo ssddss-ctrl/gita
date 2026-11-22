@@ -1,5 +1,5 @@
 // Offline copy of the Gita app. Bump CACHE whenever the file list changes.
-const CACHE = "gita-v1";
+const CACHE = "gita-v2";
 const STATIC = [
   "./",
   "./index.html",
@@ -16,6 +16,7 @@ const STATIC = [
   "./js/progress.mjs",
   "./js/speech.mjs",
   "./js/scene.mjs",
+  "./js/reminder.mjs",
   "./content/days.json",
   "./content/sanskrit.json",
   "./vendor/pdfjs/pdf.min.mjs",
@@ -58,5 +59,32 @@ self.addEventListener("fetch", (e) => {
         return response;
       })
       .catch(() => caches.match(e.request, { ignoreSearch: true })),
+  );
+});
+
+// The morning reminder, sent by .github/workflows/reminder.yml.
+self.addEventListener("push", (e) => {
+  let message = {};
+  try {
+    message = e.data ? e.data.json() : {};
+  } catch {}
+  e.waitUntil(
+    self.registration.showNotification(message.title || "Hari Om", {
+      body: message.body || "Today's verse is waiting.",
+      icon: "icon-192.png",
+      badge: "icon-192.png",
+      tag: "gita-reminder",
+      data: { url: self.registration.scope },
+    }),
+  );
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = self.registration.scope;
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => c.url.startsWith(url));
+      return open ? open.focus() : clients.openWindow(url);
+    }),
   );
 });
