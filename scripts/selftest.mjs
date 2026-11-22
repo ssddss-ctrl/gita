@@ -112,7 +112,7 @@ ok(day1.includes("The chapter"), "day 1 includes the chapter intro");
 ok(day1.at(-2) === "In daily life", "the daily-life note comes just before the close");
 const progress = await page.evaluate(() => JSON.parse(localStorage.getItem("gita:progress")));
 ok(progress.completed[1] && progress.nextDay === 2, "day 1 recorded as studied; next is day 2");
-ok(progress.streak.count === 1, "streak is 1");
+ok(!/streak/i.test(await text("#step")), "no streak shown at the close");
 ok((await count("#step .dot.kindle")) === 1 && (await text("#step .lit-note")).includes("lamp is lit"), "finishing a day lights its lamp on the map");
 ok(
   (await page.$eval(".steps", (b) => b.getAttribute("aria-valuenow"))) === String(day1.length),
@@ -155,7 +155,6 @@ await page.evaluate(() => {
   const y = new Date(Date.now() - 864e5);
   const iso = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, "0")}-${String(y.getDate()).padStart(2, "0")}`;
   p.completed[1] = iso;
-  p.streak.lastDate = iso;
   p.reviews[1].due = iso;
   localStorage.setItem("gita:progress", JSON.stringify(p));
 });
@@ -199,7 +198,7 @@ for (const view of ["verses", "memorize/1", "gallery", "settings", "recap"]) {
 await page.goto(`${BASE}/gita/?dev=1#/settings`, { waitUntil: "networkidle0" });
 ok((await count(".g-top .g-icon")) === 0, "the Settings page has no link to itself");
 ok((await text("#kept")).length > 10, "settings says whether the book is kept permanently");
-ok((await text("#reminder")).includes("7:45"), "settings offers the morning reminder");
+ok(/7:45.*8 p\.m\./.test(await text("#reminder")), "settings offers the morning and evening reminders");
 await page.evaluate(
   () =>
     new Promise((resolve, reject) => {

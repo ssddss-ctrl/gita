@@ -135,7 +135,6 @@ function chapterMap(highlight = null, kindle = false) {
 function renderHome() {
   if (!book) return renderOnboarding();
   const plan = P.todayPlan(progress, content.days.length, today());
-  const streak = P.currentStreak(progress, today());
   const due = P.dueReviews(progress, today(), plan.kind === "new" ? plan.day : null).length;
   const recap = settings.recap ? P.recapDays(progress, today()) : [];
   const day = plan.day ? dayAt(plan.day) : null;
@@ -144,7 +143,7 @@ function renderHome() {
   <section class="g-hero">
     <p class="g-eyebrow">${plan.kind === "done" ? "Today's verse is complete" : plan.kind === "finished" ? "All 100 days studied" : `Day ${plan.day} of ${content.days.length}`}</p>
     <h1>${day ? `<span class="g-ref">${esc(day.ref)}</span><em>${esc(ch?.sanskritTitle || "")}</em>` : "Hari Om"}</h1>
-    <p class="g-meta">${streak ? `${streak}-day streak` : "A new streak begins today"}${due ? ` · ${due} verse${due === 1 ? "" : "s"} to recall` : ""}</p>
+    ${due ? `<p class="g-meta">${due} verse${due === 1 ? "" : "s"} to recall</p>` : ""}
     ${
       plan.kind === "new"
         ? `<a class="g-begin" href="#/session">Begin today's practice</a>`
@@ -378,13 +377,11 @@ async function renderSession(dayNumber, preview = false) {
       justLit = true;
     }
     const starred = progress.starred.includes(day.day);
-    const streak = P.currentStreak(progress, today());
     return `${Scene.frameHTML(day.chapter).replace("scene-frame", "scene-frame small")}
       ${sanskritBlock(ref, { lines: false })}
       <div class="translation">${english.map((t) => `<p>${esc(t)}</p>`).join("")}</div>
       ${extra.length ? `<div class="translation extra">${extra.map((t) => `<p>${esc(t)}</p>`).join("")}<p class="tr-ref">${day.close.c}.${day.close.v}</p></div>` : ""}
-      <div class="close-row"><button class="star${starred ? " on" : ""}" id="star" aria-pressed="${starred}">${starred ? "★ Starred" : "☆ Star this verse"}</button>
-      <span class="streak">${streak ? `${streak}-day streak` : ""}</span></div>
+      <div class="close-row"><button class="star${starred ? " on" : ""}" id="star" aria-pressed="${starred}">${starred ? "★ Starred" : "☆ Star this verse"}</button></div>
       ${justLit ? `<p class="lit-note" role="status">Day ${day.day}'s lamp is lit.</p>` : ""}
       ${chapterMap(day.day, justLit)}`;
   }
@@ -620,7 +617,7 @@ function renderSettings() {
     <label>Voice <select id="voice"><option value="">Default English voice</option>${voices.map((v) => `<option ${v.name === settings.voice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
     <label>Speed <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="${settings.rate}"> <span id="rate-val">${settings.rate}×</span></label>
     <button class="g-btn" id="test-voice">Try the voice</button></section>
-  <section class="set" id="reminder"><h2>Morning reminder</h2></section>
+  <section class="set" id="reminder"><h2>Reminders</h2></section>
   <section class="set"><h2>Weekend recap</h2>
     <label class="row"><input type="checkbox" id="recap" ${settings.recap ? "checked" : ""}> Offer a recap of the week's verses on Saturdays and Sundays</label></section>
   <section class="set"><h2>Scenes</h2>
@@ -633,7 +630,7 @@ function renderSettings() {
     <button class="g-btn" id="export">Export progress</button>
     <label class="g-btn file">Import progress<input type="file" id="import" accept="application/json,.json" hidden></label>
     <button class="g-btn danger" id="reset">Reset progress</button>
-    <div id="confirm" hidden><p>This clears your streak, reviews and stars. Your book and gallery stay.</p><button class="g-btn danger" id="reset-yes">Yes, reset</button> <button class="g-btn" id="reset-no">Cancel</button></div>
+    <div id="confirm" hidden><p>This clears the days you've studied, your reviews and your stars. Your book and gallery stay.</p><button class="g-btn danger" id="reset-yes">Yes, reset</button> <button class="g-btn" id="reset-no">Cancel</button></div>
     <p class="g-status" id="prog-status" role="status"></p></section>
   <section class="set"><h2>About</h2><p>Translation and commentary: Swami Chinmayananda, <em>Holy Geeta</em>, read from your own copy on this device. Sanskrit: IIT Kanpur Gita Supersite. Bridges marked "not from the book" are short notes written for this app.</p></section>
   ${DEV ? devPanel() : ""}`;

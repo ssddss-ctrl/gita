@@ -15,7 +15,7 @@ and listening only (optional memorize mode for starred verses). No reflection qu
 Daily flow: scene (~10 s) → recall (≤3 due verses, spaced 1/3/7/14/30 days) → chapter
 intro (first day of a chapter) → thread (his linking lines / short "mine" bridges, marked)
 → verse (Devanagari, IAST, chant if licensed, his translation) → in his words (selected
-commentary + full-commentary expander) → in daily life (`content/daily-life.json`) → close (verse again, star, streak, chapter map).
+commentary + full-commentary expander) → in daily life (`content/daily-life.json`) → close (verse again, star, chapter map). No streak.
 
 ### Firm rules
 
@@ -105,6 +105,7 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
 - 2026-11-22: Morning reminder: own VAPID key pair (public key in `js/reminder.mjs`, private
   key in secret `VAPID_PRIVATE_KEY`); subscriptions in secret `PUSH_SUBSCRIPTIONS`;
   `reminder.yml` runs at 11:45 and 12:45 UTC and sends only when it's 7 a.m. in New York.
+  (Superseded the same day: two alerts, see below.)
   The alert is the same every day because the workflow can't see progress on the phone.
 - 2026-11-22: Scene worker deployed at https://gita-scenes.hari-om-gita.workers.dev (the
   default `settings.endpoint`; only the passphrase is entered on the phone). Tested with FLUX
@@ -126,3 +127,9 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   100 notes (24-45 words) live in `content/daily-life.json`, kept apart from the generated
   `days.json`. Two first drafts (days 40, 95) shared 8 words with the book's phrasing and were
   reworded.
+- 2026-11-22: The owner may not practise every morning. They chose: no streak at all (removed
+  from progress, home and close; old saved `streak` fields are ignored), still one new verse a
+  day (no catching up), and two reminders, ~7:45 a.m. and 8:00 p.m. New York time. Four UTC
+  crons; the gate sends only within 50 minutes after each target, so it fires once per slot in
+  summer and winter. The evening text allows for having already practised ("If you haven't
+  yet…"), because the workflow can't see progress.

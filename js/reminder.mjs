@@ -1,7 +1,7 @@
-/* The morning reminder (Settings → Morning reminder).
+/* Daily reminders (Settings → Reminders): about 7:45 a.m. and 8 p.m. New York time.
    The phone makes a push subscription: its private delivery address. Saved once as the
    PUSH_SUBSCRIPTIONS secret in GitHub, it lets .github/workflows/reminder.yml send one
-   alert each morning. Nothing about your progress is sent; the alert is the same each day. */
+   alerts each day. Nothing about your progress is sent; the alerts are the same each day. */
 
 // Public half of the signing key pair; the private half is the VAPID_PRIVATE_KEY secret.
 const VAPID_PUBLIC_KEY =
@@ -33,7 +33,7 @@ async function currentSubscription() {
 
 /** Fill the Settings section and wire its buttons. */
 export async function mount(el) {
-  const intro = "<h2>Morning reminder</h2><p>One gentle alert each morning at about 7:45.</p>";
+  const intro = "<h2>Reminders</h2><p>Two gentle alerts a day: about 7:45 a.m. and 8 p.m.</p>";
   if (iOS() && !standalone()) {
     el.innerHTML = `${intro}<p>On iPhone, reminders only work in the Home Screen app. In Safari, tap Share → Add to Home Screen, then open Gita from there.</p>`;
     return;
@@ -70,8 +70,8 @@ export async function mount(el) {
 
 function showCode(el, sub) {
   const code = JSON.stringify(sub);
-  el.innerHTML = `<h2>Morning reminder</h2>
-    <p>Reminders are allowed on this phone. One last step, done once: the morning job needs this setup code.</p>
+  el.innerHTML = `<h2>Reminders</h2>
+    <p>Reminders are allowed on this phone. One last step, done once: the reminder job needs this setup code.</p>
     <p>Copy it and send it to Claude in Claude Code, or save it yourself in <a href="${SECRETS_URL}" target="_blank" rel="noopener noreferrer">GitHub → New secret ↗</a> named <b>PUSH_SUBSCRIPTIONS</b>.</p>
     <p>Keep the code private: anyone with it can send alerts to this phone.</p>
     <textarea class="rem-code" id="rem-code" readonly rows="3">${esc(code)}</textarea>
@@ -89,6 +89,6 @@ function showCode(el, sub) {
   };
   el.querySelector("#rem-off").onclick = async () => {
     await sub.unsubscribe().catch(() => {});
-    el.innerHTML = "<h2>Morning reminder</h2><p>Reminders are off on this phone.</p>";
+    el.innerHTML = "<h2>Reminders</h2><p>Reminders are off on this phone.</p>";
   };
 }

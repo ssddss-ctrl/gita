@@ -161,6 +161,9 @@ button,
   font-style: italic;
   margin: 0 0 22px;
 }
+.g-hero h1 + .g-begin {
+  margin-top: 14px;
+}
 .g-begin,
 .g-btn {
   display: inline-flex;
@@ -720,11 +723,6 @@ details.full summary {
 .star.on {
   color: var(--diya);
   border-color: var(--saffron);
-}
-.streak {
-  color: var(--diya);
-  font-style: italic;
-  animation: fade 1.6s ease both;
 }
 
 /* Recap, my verses, memorize, gallery, settings */

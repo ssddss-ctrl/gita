@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send the morning Gita reminder to each device in the PUSH_SUBSCRIPTIONS secret.
+"""Send a Gita reminder (morning, evening or test) to each device in PUSH_SUBSCRIPTIONS.
 
 Device addresses and keys are never printed. A delivery problem is reported in the
 run summary but does not fail the run.
@@ -38,8 +38,16 @@ def subscriptions(raw):
     return valid
 
 
-def message():
-    return {"title": "Hari Om", "body": "Today's verse is waiting.", "url": SITE}
+MESSAGES = {
+    "morning": {"title": "Hari Om", "body": "Today's verse is waiting."},
+    # The workflow can't see progress on the phone, so the evening alert allows for both cases.
+    "evening": {"title": "Hari Om", "body": "If you haven't yet, there's still time for today's verse."},
+    "test": {"title": "Gita test reminder", "body": "Reminders are working on this phone."},
+}
+
+
+def message(slot):
+    return {**MESSAGES[slot], "url": SITE}
 
 
 def send(subs, payload, private_key):
@@ -69,24 +77,18 @@ def send(subs, payload, private_key):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--test", action="store_true", help="Send a test reminder instead")
+    parser.add_argument("--slot", choices=sorted(MESSAGES), default="morning", help="Which reminder to send")
+    parser.add_argument("--test", action="store_true", help="Same as --slot test")
     args = parser.parse_args()
     subs = subscriptions(os.environ.get("PUSH_SUBSCRIPTIONS", ""))
     key = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
     if not subs:
-        print("Morning reminder skipped: no valid PUSH_SUBSCRIPTIONS secret yet.")
+        print("Reminder skipped: no valid PUSH_SUBSCRIPTIONS secret yet.")
         return 0
     if not key:
-        print("Morning reminder skipped: VAPID_PRIVATE_KEY secret is missing.")
+        print("Reminder skipped: VAPID_PRIVATE_KEY secret is missing.")
         return 0
-    if args.test:
-        payload = {
-            "title": "Gita test reminder",
-            "body": "Reminders are working on this phone.",
-            "url": SITE,
-        }
-    else:
-        payload = message()
+    payload = message("test" if args.test else args.slot)
     for line in send(subs, payload, key):
         print(line)
     return 0

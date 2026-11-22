@@ -1,4 +1,5 @@
-/* Progress for the Gita practice: which day is next, the streak, spaced reviews, stars.
+/* Progress for the Gita practice: which day is next, spaced reviews, stars. No streak:
+   practice is welcome any day, and a missed day costs nothing.
    Pure functions on a plain object, so they are easy to test; app.mjs saves the object
    in localStorage. Missed days simply mean the next session picks up where you left off. */
 
@@ -10,7 +11,6 @@ export function emptyProgress() {
     version: 1,
     nextDay: 1, // the next new day to study
     completed: {}, // day number -> date (YYYY-MM-DD) it was completed
-    streak: { count: 0, lastDate: "" },
     reviews: {}, // day number -> { step, due }
     starred: [], // day numbers
     since: "", // first session date
@@ -59,7 +59,7 @@ export function gradeReview(progress, day, grade, today = isoDate()) {
   return progress;
 }
 
-/** Mark a day studied: it enters the review cycle and the streak advances. */
+/** Mark a day studied: it enters the review cycle. */
 export function completeDay(progress, day, today = isoDate()) {
   if (!progress.since) progress.since = today;
   if (!progress.completed[day]) {
@@ -67,19 +67,7 @@ export function completeDay(progress, day, today = isoDate()) {
     progress.reviews[day] = { step: 0, due: addDays(today, INTERVALS[0]) };
     if (day >= progress.nextDay) progress.nextDay = day + 1;
   }
-  const last = progress.streak.lastDate;
-  if (last !== today) {
-    progress.streak.count = last && daysBetween(last, today) === 1 ? progress.streak.count + 1 : 1;
-    progress.streak.lastDate = today;
-  }
   return progress;
-}
-
-/** The streak shown today (a gap of more than a day quietly resets it to 0). */
-export function currentStreak(progress, today = isoDate()) {
-  const last = progress.streak.lastDate;
-  if (!last) return 0;
-  return daysBetween(last, today) <= 1 ? progress.streak.count : 0;
 }
 
 export function toggleStar(progress, day) {

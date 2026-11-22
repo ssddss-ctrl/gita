@@ -1,10 +1,15 @@
-name: Morning reminder
+name: Gita reminders
 
+# Two alerts a day, New York time all year: about 7:45 a.m. and 8:00 p.m.
+# Cron runs in UTC, so each alert has two schedules (one matches in summer, the other in
+# winter); the gate step sends only inside a 50-minute window after the target time.
+# That window also absorbs GitHub's usual few minutes of delay without ever sending twice.
 on:
   schedule:
-    # 7:45 a.m. New York time all year: one of these is 7:45 in summer, the other in winter.
-    - cron: '45 11 * * *'
-    - cron: '45 12 * * *'
+    - cron: '45 11 * * *' # 7:45 a.m. EDT / 6:45 a.m. EST (skipped)
+    - cron: '45 12 * * *' # 8:45 a.m. EDT (skipped) / 7:45 a.m. EST
+    - cron: '0 0 * * *' # 8:00 p.m. EDT / 7:00 p.m. EST (skipped)
+    - cron: '0 1 * * *' # 9:00 p.m. EDT (skipped) / 8:00 p.m. EST
   workflow_dispatch:
     inputs:
       test:
@@ -19,36 +24,44 @@ jobs:
   remind:
     runs-on: ubuntu-latest
     steps:
-      - name: Is it about 7 a.m. in New York?
+      - name: Is it reminder time in New York?
         id: gate
         run: |
-          hour=$(TZ=America/New_York date +%H)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$hour" = "07" ]; then
-            echo "send=yes" >> "$GITHUB_OUTPUT"
+          now=$(TZ=America/New_York date +%H:%M)
+          minutes=$((10#${now%:*} * 60 + 10#${now#*:}))
+          slot=""
+          # Morning: 7:45 to 8:34. Evening: 8:00 to 8:49 p.m.
+          if [ "$minutes" -ge 465 ] && [ "$minutes" -lt 515 ]; then slot=morning; fi
+          if [ "$minutes" -ge 1200 ] && [ "$minutes" -lt 1250 ]; then slot=evening; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then slot=test; fi
+          if [ -n "$slot" ]; then
+            echo "slot=$slot" >> "$GITHUB_OUTPUT"
           else
-            echo "Not 7 a.m. in New York (it's ${hour}:xx); the other schedule covers today." >> "$GITHUB_STEP_SUMMARY"
+            echo "Not reminder time in New York (it's $now); another schedule covers it." >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.slot != ''
       - uses: actions/setup-python@v5
-        if: steps.gate.outputs.send == 'yes'
+        if: steps.gate.outputs.slot != ''
         with:
           python-version: '3.12'
       - name: Send the reminder
-        if: steps.gate.outputs.send == 'yes'
+        if: steps.gate.outputs.slot != ''
         env:
           PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SLOT: ${{ steps.gate.outputs.slot }}
         run: |
           pip install -q pywebpush==2.0.3
-          python scripts/notify_push.py ${{ inputs.test && '--test' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
+          python scripts/notify_push.py --slot "$SLOT" | tee -a "$GITHUB_STEP_SUMMARY"
       # GitHub turns off scheduled workflows after 60 days without a commit.
       - name: Monthly keepalive
-        if: github.event_name == 'schedule' && steps.gate.outputs.send == 'yes'
+        if: github.event_name == 'schedule' && steps.gate.outputs.slot == 'morning'
         run: |
           [ "$(TZ=America/New_York date +%d)" = "01" ] || exit 0
           date -u +%Y-%m-%dT%H:%MZ > .github/keepalive
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/keepalive
-          git commit -m "Keep the morning reminder schedule active"
+          git commit -m "Keep the reminder schedule active"
           git push
