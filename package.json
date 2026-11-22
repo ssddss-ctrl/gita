@@ -1,0 +1,16 @@
+{
+  "name": "gita",
+  "private": true,
+  "description": "Dev tooling for the Gita app (the app itself is static files).",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "test": "node scripts/test_gita_progress.mjs && node scripts/validate-content.mjs --structure",
+    "validate": "node scripts/validate-content.mjs",
+    "inspect": "node scripts/inspect-book.mjs",
+    "selftest": "node scripts/selftest.mjs"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "4.10.38",
+    "puppeteer-core": "^23.11.1"
+  }
+}

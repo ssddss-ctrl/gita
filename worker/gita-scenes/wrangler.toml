@@ -1,0 +1,12 @@
+# The Gita room's scene painter: Cloudflare Workers AI (free tier), FLUX.1 schnell.
+# Deploy steps are in worker/gita-scenes/README.md.
+name = "gita-scenes"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[ai]
+binding = "AI"
+
+[vars]
+# Pages that may ask for paintings (the live site, and a local preview).
+ALLOWED_ORIGINS = "https://ssddss-ctrl.github.io,http://127.0.0.1:8765"

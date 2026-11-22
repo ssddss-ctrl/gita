@@ -1,0 +1,51 @@
+name: Test and publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Progress tests
+        run: node scripts/test_gita_progress.mjs
+      - name: Content structure check
+        run: node scripts/validate-content.mjs --structure
+
+  publish:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gather the app files (never scripts/, worker/ or docs)
+        run: |
+          mkdir _site
+          cp -R index.html sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png \
+            apple-touch-icon.png css js content fonts vendor _site/
+          find _site -name '*.pdf' -delete
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,9 @@
+# The book is copyrighted. Never commit the PDF or any text extracted from it.
+*.pdf
+.gita-dev/
+
+node_modules/
+.DS_Store
+.env
+.env.*
+.wrangler/
