@@ -42,6 +42,7 @@ const store = {
 
 let content = null;
 let sanskrit = {};
+let dailyLife = {}; // Notes for daily life, written for this app (content/daily-life.json).
 let book = null;
 let progress = Object.assign(P.emptyProgress(), store.get(KEYS.progress, {}));
 // The scene painter's address isn't secret; only the passphrase is, and it is entered once on the phone.
@@ -232,7 +233,9 @@ function buildSteps(day, preview) {
   const steps = ["scene"];
   if (!preview && P.dueReviews(progress, today(), day.day).length) steps.push("recall");
   if (content.chapters[day.chapter].firstDay === day.day && day.intro) steps.push("intro");
-  steps.push("thread", "verse", "words", "close");
+  steps.push("thread", "verse", "words");
+  if (dailyLife[day.day]) steps.push("life");
+  steps.push("close");
   return steps;
 }
 
@@ -243,6 +246,7 @@ const STEP_LABEL = {
   thread: "The thread",
   verse: "The verse",
   words: "In his words",
+  life: "In daily life",
   close: "Close",
 };
 
@@ -358,6 +362,11 @@ async function renderSession(dayNumber, preview = false) {
       listenTexts.set("full", full);
       return `${listenButton("words")}<div class="prose">${paras(text)}</div>
         <details class="full"><summary>Read his full commentary</summary>${listenButton("full", "Listen to all")}<div class="prose">${paras(full)}</div></details>`;
+    }
+    if (step === "life") {
+      const note = dailyLife[day.day];
+      listenTexts.set("life", [note]);
+      return `${listenButton("life")}<div class="thread mine life"><span class="by">For today, not from the book</span><p>${esc(note)}</p></div>`;
     }
     // close
     const english = translationsFor(day);
@@ -745,12 +754,16 @@ function registerOfflineCopy() {
 
 async function start() {
   root.innerHTML = `<p class="g-lead loading">Hari Om…</p>`;
-  const [days, sa] = await Promise.all([
+  const [days, sa, life] = await Promise.all([
     fetch("content/days.json").then((r) => r.json()),
     fetch("content/sanskrit.json").then((r) => r.json()),
+    fetch("content/daily-life.json")
+      .then((r) => r.json())
+      .catch(() => ({ days: {} })),
   ]);
   content = days;
   sanskrit = sa.verses;
+  dailyLife = life.days || {};
   book = await loadBook().catch(() => null);
   if (book) await keepStorage();
   saveProgress();

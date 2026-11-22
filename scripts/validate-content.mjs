@@ -13,8 +13,19 @@ const structureOnly = process.argv.includes("--structure");
 const problems = [];
 const fail = (msg) => problems.push(msg);
 const days = content.days;
+const dailyLife = JSON.parse(fs.readFileSync(path.join(ROOT, "content/daily-life.json"), "utf8")).days;
 
 // ---------- Structure (no book needed) ----------
+// "In daily life" notes: one per day, short, and (checked with the book below) never the book's words.
+for (const d of days) {
+  const note = dailyLife[d.day];
+  if (!note) fail(`Day ${d.day} has no daily-life note`);
+  else {
+    const words = note.split(/\s+/).length;
+    if (words < 15 || words > 60) fail(`Day ${d.day}: daily-life note is ${words} words (want 15-60)`);
+  }
+}
+for (const k of Object.keys(dailyLife)) if (!days.some((d) => String(d.day) === k)) fail(`Daily-life note for unknown day ${k}`);
 const MUST = ["2.47", "3.19", "3.21", "3.35", "4.7", "4.8", "4.18", "4.34", "5.10", "6.5", "6.19", "6.35", "7.7", "8.7", "9.22", "9.26", "9.34", "10.20", "11.32", "11.55", "12.13", "13.27|13.28", "14.26", "15.1", "15.7", "15.15", "16.21", "17.3", "18.46", "18.47", "18.61", "18.65", "18.66", "18.73", "18.78"];
 const covered = new Set(days.flatMap((d) => d.verses.map((v) => `${d.chapter}.${v}`)));
 for (const m of MUST) if (!m.split("|").some((r) => covered.has(r))) fail(`Must-include verse missing: ${m}`);
@@ -108,6 +119,10 @@ if (!structureOnly) {
         const hits = runs(t.text, eight, 8);
         if (hits.length) fail(`Day ${d.day}: "mine" bridge matches the book for 8+ words: "${hits[0]}"`);
       }
+    }
+    if (dailyLife[d.day]) {
+      const hits = runs(dailyLife[d.day], eight, 8);
+      if (hits.length) fail(`Day ${d.day}: daily-life note matches the book for 8+ words: "${hits[0]}"`);
     }
   }
   // No committed file may contain a 12-word run from the book.

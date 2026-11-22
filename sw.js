@@ -1,5 +1,5 @@
 // Offline copy of the Gita app. Bump CACHE whenever the file list changes.
-const CACHE = "gita-v3";
+const CACHE = "gita-v4";
 const STATIC = [
   "./",
   "./index.html",
@@ -19,6 +19,7 @@ const STATIC = [
   "./js/reminder.mjs",
   "./content/days.json",
   "./content/sanskrit.json",
+  "./content/daily-life.json",
   "./vendor/pdfjs/pdf.min.mjs",
   "./vendor/pdfjs/pdf.worker.min.mjs",
   "./fonts/EBGaramond-normal-latin.woff2",

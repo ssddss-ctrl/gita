@@ -7,14 +7,15 @@ Use the `frontend-design` skill for any UI work.
 
 A 5–10 minute daily Gita practice, used mostly on the phone around 8:00 a.m., based
 entirely on Swami Chinmayananda's *Holy Geeta*, taught from the perspective of Sanatana
-Dharma. It does not connect verses to modern life. One new verse a day, ~100 key verses
+Dharma. Each day ends with one short note on living the verse today ("In daily life",
+written for the app, marked not from the book). One new verse a day, ~100 key verses
 across all 18 chapters in book order, always arriving with context (the thread). Reading
 and listening only (optional memorize mode for starred verses). No reflection questions.
 
 Daily flow: scene (~10 s) → recall (≤3 due verses, spaced 1/3/7/14/30 days) → chapter
 intro (first day of a chapter) → thread (his linking lines / short "mine" bridges, marked)
 → verse (Devanagari, IAST, chant if licensed, his translation) → in his words (selected
-commentary + full-commentary expander) → close (verse again, star, streak, chapter map).
+commentary + full-commentary expander) → in daily life (`content/daily-life.json`) → close (verse again, star, streak, chapter map).
 
 ### Firm rules
 
@@ -31,8 +32,9 @@ commentary + full-commentary expander) → close (verse again, star, streak, cha
    radiance), never an illustration of the verse's metaphor.
 4. **Sanskrit audio** only from a freely licensed source with the license recorded; never
    AI text-to-speech for Sanskrit. Otherwise the chant button says "coming soon".
-5. **"Mine" thread bridges** are written fresh from the Gita's narrative, never as
-   paraphrases of his commentary, and are marked in the UI as not his.
+5. **"Mine" thread bridges and daily-life notes** are written fresh from the Gita's
+   narrative and the verse's own meaning, never as paraphrases of his commentary, and are
+   marked in the UI as not his. The validator fails any that shares 8+ words with the book.
 
 ### Hosting (since 2026-11-22)
 
@@ -118,3 +120,9 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   strength (rule 5); the Settings header no longer links to itself; a finished day's lamp
   "kindles" on the closing map. Left as is on purpose: sentence case (not Title Case), the
   small map dots (a visual record; studied days also open from "Read today's verse again").
+- 2026-11-22: The owner asked for life application (reversing "does not connect verses to
+  modern life"), after comparing the app with general Gita study advice; they chose to keep
+  everything else as is (no whole-chapter reading, reflection log, chant link or discussion).
+  100 notes (24-45 words) live in `content/daily-life.json`, kept apart from the generated
+  `days.json`. Two first drafts (days 40, 95) shared 8 words with the book's phrasing and were
+  reworded.

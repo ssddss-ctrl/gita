@@ -89,6 +89,12 @@ async function stepThrough(prefix, expectFirst) {
       ok((await count("#step .prose p")) > 0, `${prefix}: his commentary shown`);
       ok((await count("#step details.full .prose p")) > 0, `${prefix}: full commentary available`);
     }
+    if (step === "life")
+      ok(
+        (await text("#step .thread.mine .by")).includes("not from the book") &&
+          (await text("#step .thread.mine p")).length > 60,
+        `${prefix}: daily-life note shown, marked not from the book`,
+      );
     if (step === "intro")
       ok((await text("#step .prose")).length > 100, `${prefix}: chapter intro shown`);
     await shot(`${prefix}-${i}-${step}`);
@@ -103,6 +109,7 @@ async function stepThrough(prefix, expectFirst) {
 await page.goto(`${BASE}/gita/?dev=1#/session`, { waitUntil: "networkidle0" });
 const day1 = await stepThrough("day1", "Kurukshetra");
 ok(day1.includes("The chapter"), "day 1 includes the chapter intro");
+ok(day1.at(-2) === "In daily life", "the daily-life note comes just before the close");
 const progress = await page.evaluate(() => JSON.parse(localStorage.getItem("gita:progress")));
 ok(progress.completed[1] && progress.nextDay === 2, "day 1 recorded as studied; next is day 2");
 ok(progress.streak.count === 1, "streak is 1");
