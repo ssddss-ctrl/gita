@@ -178,6 +178,29 @@ for (const view of ["verses", "memorize/1", "gallery", "settings", "recap"]) {
   await shot(`view-${view.replace("/", "-")}`);
 }
 
+// 7. The book is kept: Settings says so, and a cleared book shows the recovery screen.
+await page.goto(`${BASE}/gita/?dev=1#/settings`, { waitUntil: "networkidle0" });
+ok((await text("#kept")).length > 10, "settings says whether the book is kept permanently");
+await page.evaluate(
+  () =>
+    new Promise((resolve, reject) => {
+      const req = indexedDB.open("gita");
+      req.onsuccess = () => {
+        const tx = req.result.transaction("kv", "readwrite");
+        tx.objectStore("kv").delete("book");
+        tx.oncomplete = () => (req.result.close(), resolve());
+        tx.onerror = () => reject(tx.error);
+      };
+    }),
+);
+await page.goto(`${BASE}/gita/?dev=1#/`, { waitUntil: "networkidle0" });
+await page.reload({ waitUntil: "networkidle0" }); // A hash change alone doesn't reload.
+ok(
+  (await text("main")).includes("Your progress is safe"),
+  "a cleared book asks for the PDF again and keeps progress",
+);
+await shot("recovery");
+
 await browser.close();
 server.close();
 const real = errors.filter((e) => !/favicon|speechSynthesis|Failed to load resource/i.test(e));

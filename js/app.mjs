@@ -48,6 +48,16 @@ let settings = Object.assign(
   store.get(KEYS.settings, {}),
 );
 let cleanup = [];
+let persisted = null; // Whether the phone promised to keep this app's storage.
+
+// Ask the phone to keep the book and progress, so they aren't cleared after weeks unused.
+async function keepStorage() {
+  try {
+    persisted = (await navigator.storage?.persist?.()) ?? null;
+  } catch {
+    persisted = null;
+  }
+}
 
 const today = () => P.isoDate();
 const dayAt = (n) => content.days[n - 1];
@@ -145,10 +155,13 @@ function renderHome() {
 }
 
 function renderOnboarding(message = "") {
+  // Progress without a book means the phone cleared the stored book.
+  const cleared = Object.keys(progress.completed).length > 0;
   root.innerHTML = `${header("Bhagavad Gita", null)}
   <section class="g-hero">
-    <p class="g-eyebrow">Before the first day</p>
+    <p class="g-eyebrow">${cleared ? "Your book needs loading again" : "Before the first day"}</p>
     <h1>Choose your copy of the <em>Holy Geeta</em></h1>
+    ${cleared ? `<p class="g-lead">This phone cleared the stored book. Choose the PDF again. Your progress is safe.</p>` : ""}
     <p class="g-lead">The translation and commentary are read from your own PDF of Swami Chinmayananda's <em>Holy Geeta</em>, here on this phone. The book never leaves this device and is never uploaded.</p>
     <label class="g-begin file">Choose the PDF<input type="file" id="pdf" accept="application/pdf,.pdf" hidden></label>
     <p class="g-status" id="status" role="status">${esc(message)}</p>
@@ -164,6 +177,7 @@ function renderOnboarding(message = "") {
         file,
         (n, total) => (status.textContent = `Reading page ${n} of ${total}…`),
       );
+      await keepStorage();
       const check = integrity(book, content.days);
       status.textContent = `Ready. ${check.exact} of ${check.total} passages found exactly.`;
       // Let the confirmation be read, then open the home screen.
@@ -563,6 +577,7 @@ function renderSettings() {
   root.innerHTML = `${header("Settings")}
   <section class="set"><h2>The book</h2>
     <p>${book ? `Loaded ${esc(new Date(book.importedAt).toLocaleDateString())}. ${check.exact} of ${check.total} passages found exactly.` : "No PDF loaded yet."}</p>
+    ${book ? `<p class="g-status" id="kept">${persisted ? "Kept on this phone permanently." : "This phone may clear the book if the app goes unused for a few weeks. Open it from the Home Screen to keep it."}</p>` : ""}
     <label class="g-btn file">${book ? "Reload the PDF" : "Choose the PDF"}<input type="file" id="pdf" accept="application/pdf,.pdf" hidden></label>
     <p class="g-status" id="pdf-status" role="status"></p></section>
   <section class="set"><h2>Read-aloud</h2>
@@ -594,6 +609,7 @@ function renderSettings() {
         file,
         (n, t) => ($("#pdf-status").textContent = `Reading page ${n} of ${t}…`),
       );
+      await keepStorage();
       renderSettings();
     } catch (e) {
       $("#pdf-status").textContent = e.message;
@@ -691,6 +707,7 @@ async function start() {
   content = days;
   sanskrit = sa.verses;
   book = await loadBook().catch(() => null);
+  if (book) await keepStorage();
   saveProgress();
   window.addEventListener("hashchange", route);
   if ("speechSynthesis" in window)
