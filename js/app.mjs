@@ -44,10 +44,14 @@ let content = null;
 let sanskrit = {};
 let book = null;
 let progress = Object.assign(P.emptyProgress(), store.get(KEYS.progress, {}));
+// The scene painter's address isn't secret; only the passphrase is, and it is entered once on the phone.
+const SCENE_ENDPOINT = "https://gita-scenes.hari-om-gita.workers.dev";
 let settings = Object.assign(
   { voice: "", rate: 0.95, recap: true, endpoint: "", passphrase: "" },
   store.get(KEYS.settings, {}),
 );
+if (!settings.endpoint) settings.endpoint = SCENE_ENDPOINT;
+const scenesReady = () => Boolean(settings.endpoint && settings.passphrase);
 let cleanup = [];
 let persisted = null; // Whether the phone promised to keep this app's storage.
 
@@ -260,7 +264,7 @@ async function renderSession(dayNumber, preview = false) {
   // Scene: show a saved painting, or start painting now so it is ready by the close.
   const painting = (async () => {
     sceneBlob = await Scene.savedScene(day.day);
-    if (sceneBlob || preview || !settings.endpoint) return sceneBlob;
+    if (sceneBlob || preview || !scenesReady()) return sceneBlob;
     try {
       sceneBlob = await Scene.generate(day, settings);
     } catch (e) {
@@ -301,7 +305,7 @@ async function renderSession(dayNumber, preview = false) {
     if (step === "scene")
       return `${Scene.frameHTML(day.chapter)}
         <div class="scene-actions"><button id="keep">Keep</button><button id="regen">Paint another</button></div>
-        <p class="g-status" id="scene-status" role="status">${settings.endpoint ? "" : "Paintings appear once scenes are set up in Settings."}</p>`;
+        <p class="g-status" id="scene-status" role="status">${scenesReady() ? "" : "Paintings appear once the scene passphrase is entered in Settings."}</p>`;
     if (step === "recall") return `<div id="recall"></div>`;
     if (step === "intro") {
       const ch = book.chapters[day.chapter];
@@ -386,7 +390,7 @@ async function renderSession(dayNumber, preview = false) {
           setSceneStatus(e.message);
         }
       };
-      if (settings.endpoint && !sceneBlob) {
+      if (scenesReady() && !sceneBlob) {
         setSceneStatus("Painting today's scene…");
         painting.then((b) => {
           if (b) {
@@ -589,7 +593,7 @@ function renderSettings() {
   <section class="set"><h2>Weekend recap</h2>
     <label class="row"><input type="checkbox" id="recap" ${settings.recap ? "checked" : ""}> Offer a recap of the week's verses on Saturdays and Sundays</label></section>
   <section class="set"><h2>Scenes</h2>
-    <p>Paintings come from your own free Cloudflare image function. Enter its address and passphrase once.</p>
+    <p>Paintings come from your own free Cloudflare image function. Enter the passphrase once; the address is already filled in.</p>
     <label>Address <input id="endpoint" type="url" inputmode="url" placeholder="https://gita-scenes.….workers.dev" value="${esc(settings.endpoint)}"></label>
     <label>Passphrase <input id="pass" type="password" autocomplete="off" value="${esc(settings.passphrase)}"></label>
     <button class="g-btn" id="save-scenes">Save</button> <span class="g-status" id="scene-saved" role="status"></span></section>
@@ -631,7 +635,7 @@ function renderSettings() {
     });
   $("#recap").onchange = (e) => ((settings.recap = e.target.checked), saveSettings());
   $("#save-scenes").onclick = () => {
-    settings.endpoint = $("#endpoint").value.trim();
+    settings.endpoint = $("#endpoint").value.trim() || SCENE_ENDPOINT;
     settings.passphrase = $("#pass").value;
     saveSettings();
     $("#scene-saved").textContent = "Saved.";

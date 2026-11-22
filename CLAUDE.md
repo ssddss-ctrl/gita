@@ -104,3 +104,9 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   key in secret `VAPID_PRIVATE_KEY`); subscriptions in secret `PUSH_SUBSCRIPTIONS`;
   `reminder.yml` runs at 11:45 and 12:45 UTC and sends only when it's 7 a.m. in New York.
   The alert is the same every day because the workflow can't see progress on the phone.
+- 2026-11-22: Scene worker deployed at https://gita-scenes.hari-om-gita.workers.dev (the
+  default `settings.endpoint`; only the passphrase is entered on the phone). Tested with FLUX
+  schnell: "Krishna's face is never shown" still produced face-on and profile charioteers,
+  because naming the face invites one. RULES now describes every person positively as a small
+  backlit silhouette seen from behind; three Krishna scenes then showed no faces. Re-check by
+  eye after any prompt or model change.

@@ -7,7 +7,7 @@ const MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const STYLE =
   "Painterly digital art, ancient India, the Mahabharata, Kurukshetra battlefield, warm golds and deep blues, soft volumetric light, cinematic wide composition, epic and reverent mood, highly detailed";
 const RULES =
-  "Krishna's face is never shown, only from behind, in silhouette, as a hand, or as radiant light; no text, no letters, no watermark, no modern objects.";
+  "Every person is a small dark backlit silhouette seen from behind, facing away toward the horizon; the charioteer is a silhouette from behind, his hand on the reins; no text, no letters, no watermark, no modern objects.";
 
 const clean = (value, max = 300) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
 
