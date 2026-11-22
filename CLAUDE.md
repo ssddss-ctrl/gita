@@ -110,3 +110,11 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   because naming the face invites one. RULES now describes every person positively as a small
   backlit silhouette seen from behind; three Krishna scenes then showed no faces. Re-check by
   eye after any prompt or model change.
+- 2026-11-22: Interface pass using the installed review skills (Vercel web guidelines, the
+  interfaces plugin's accessibility/motion rules, mobile-app-ui-design). Changes: page titles
+  and focus move on every view; each session step's title is an `h1` that takes focus (the
+  step no longer re-reads as a live region); the progress bar reports its value; gallery
+  Remove has a 6-second Undo; buttons give press feedback; the bridge label is 16px at full
+  strength (rule 5); the Settings header no longer links to itself; a finished day's lamp
+  "kindles" on the closing map. Left as is on purpose: sentence case (not Title Case), the
+  small map dots (a visual record; studied days also open from "Read today's verse again").

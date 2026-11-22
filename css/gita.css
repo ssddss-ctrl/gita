@@ -46,6 +46,46 @@ select {
 button {
   cursor: pointer;
 }
+/* Taps: no grey flash, no double-tap zoom delay, and a gentle press you can feel. */
+button,
+a,
+label.g-btn,
+label.g-begin {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:not(:disabled):active,
+.g-begin:active,
+.g-btn:active,
+.g-card:active {
+  transform: scale(0.97);
+  filter: brightness(1.12);
+}
+button,
+.g-begin,
+.g-btn,
+.g-card {
+  transition: transform 0.12s ease, filter 0.12s ease, background-color 0.2s ease;
+}
+@media (hover: hover) {
+  .g-btn:hover,
+  .g-begin.quiet:hover,
+  .listen:hover,
+  .nav-back:hover:not(:disabled),
+  .scene-actions button:hover,
+  .verse-actions button:hover:not(:disabled),
+  .grades button:hover,
+  .star:hover {
+    border-color: var(--gold);
+  }
+  .g-begin:not(.quiet):hover,
+  .nav-next:hover {
+    filter: brightness(1.08);
+  }
+}
+.room:focus {
+  outline: none; /* focus lands here only so screen readers start at the top of a new view */
+}
 :focus-visible {
   outline: 2px solid var(--diya);
   outline-offset: 3px;
@@ -245,6 +285,25 @@ button {
   border-color: var(--saffron);
   box-shadow: 0 0 0 2px rgba(232, 145, 58, 0.35);
   animation: breathe 3s ease-in-out infinite;
+}
+/* The moment a day is finished, its lamp catches and settles. */
+.dot.kindle {
+  animation: kindle 2.4s ease-out 0.6s both;
+}
+@keyframes kindle {
+  0% {
+    background: transparent;
+    box-shadow: none;
+  }
+  40% {
+    background: #fff3d6;
+    box-shadow: 0 0 18px 6px rgba(247, 200, 115, 0.9);
+  }
+}
+.lit-note {
+  color: var(--diya);
+  font-style: italic;
+  margin: 0 0 10px;
 }
 @keyframes breathe {
   50% {
@@ -541,10 +600,9 @@ button {
 }
 .thread .by {
   display: block;
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 0.08em;
   color: var(--muted);
-  opacity: 0.8;
 }
 
 /* The verse, on a palm leaf */
@@ -717,11 +775,24 @@ details.full summary {
   justify-content: space-between;
   padding: 4px 2px;
 }
-.gallery button {
+.gallery figcaption {
+  align-items: center;
+}
+.gallery button,
+.g-link-btn {
   border: 0;
   background: none;
   color: var(--muted);
   font-size: 15px;
+  font-style: italic;
+  min-height: 44px;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.g-link-btn {
+  color: var(--diya);
+  font-size: inherit;
 }
 .set h2 {
   margin: 0 0 6px;
@@ -734,6 +805,15 @@ details.full summary {
 .set label {
   display: block;
   margin: 8px 0;
+}
+/* File pickers are styled as buttons; keep them button-shaped inside Settings. */
+.set label.g-btn {
+  display: inline-flex;
+  margin: 4px 6px 4px 0;
+  color: var(--diya);
+}
+.set .g-status {
+  margin: 6px 0 0;
 }
 .set label.row {
   display: flex;
@@ -774,9 +854,15 @@ details.full summary {
   .scene-img {
     opacity: 1;
   }
+  button:active,
+  .g-begin:active,
+  .g-btn:active,
+  .g-card:active {
+    transform: none;
+  }
 }
 .set .rem-code {
-  font: 13px/1.4 ui-monospace, Menlo, monospace;
+  font: 16px/1.4 ui-monospace, Menlo, monospace; /* 16px or more stops iPhone zooming in on tap */
   word-break: break-all;
   resize: none;
 }

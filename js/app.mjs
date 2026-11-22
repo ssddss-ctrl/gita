@@ -92,13 +92,14 @@ function wireListen() {
   });
 }
 
-function header(title, back = "#/") {
+function header(title, back = "#/", { settingsLink = true } = {}) {
   const left = back ? `<a class="g-back" href="${back}">← Back</a>` : "";
-  return `<header class="g-top">${left}<span class="g-title">${esc(title)}</span><a class="g-icon" href="#/settings" aria-label="Settings">Settings</a></header>`;
+  const right = settingsLink ? `<a class="g-icon" href="#/settings">Settings</a>` : "";
+  return `<header class="g-top">${left}<span class="g-title">${esc(title)}</span>${right}</header>`;
 }
 
 // ---------- Chapter map ----------
-function chapterMap(highlight = null) {
+function chapterMap(highlight = null, kindle = false) {
   const stages = [
     ["The path of action", 1, 6],
     ["The path of devotion", 7, 12],
@@ -117,10 +118,10 @@ function chapterMap(highlight = null) {
               .map((d) => {
                 const done = Boolean(progress.completed[d.day]);
                 const now = d.day === highlight || (!done && d.day === progress.nextDay);
-                const cls = `dot${done ? " lit" : ""}${now ? " now" : ""}`;
+                const cls = `dot${done ? " lit" : ""}${now ? " now" : ""}${kindle && d.day === highlight ? " kindle" : ""}`;
                 return done
                   ? `<a class="${cls}" href="#/day/${d.day}" aria-label="Day ${d.day}, ${d.ref}, studied"></a>`
-                  : `<span class="${cls}" aria-label="Day ${d.day}, ${d.ref}"></span>`;
+                  : `<span class="${cls}" role="img" aria-label="Day ${d.day}, ${d.ref}${now ? ", next" : ""}"></span>`;
               })
               .join("")}</span></div>`;
           })
@@ -256,8 +257,8 @@ async function renderSession(dayNumber, preview = false) {
   let stopCosmic = () => {};
 
   root.innerHTML = `${header(preview ? `Day ${day.day} · ${day.ref}` : `Day ${day.day}`)}
-    <div class="steps" role="progressbar" aria-valuemin="1" aria-valuemax="${steps.length}">${steps.map((s) => `<span data-step="${s}"></span>`).join("")}</div>
-    <article class="step" id="step" aria-live="polite"></article>
+    <div class="steps" role="progressbar" aria-label="Session progress" aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="1">${steps.map((s) => `<span data-step="${s}"></span>`).join("")}</div>
+    <article class="step" id="step"></article>
     <footer class="step-nav"><button class="nav-back" id="back">Back</button><button class="nav-next" id="next">Continue</button></footer>`;
   const stepEl = root.querySelector("#step");
 
@@ -284,20 +285,25 @@ async function renderSession(dayNumber, preview = false) {
     if (blob) Scene.showImage(frame, blob);
   }
 
-  const show = async () => {
+  const show = async (moveFocus = true) => {
     Speech.stop();
     listenTexts.clear();
     const step = steps[index];
     root
       .querySelectorAll("[data-step]")
       .forEach((el, i) => el.classList.toggle("done", i <= index));
+    const bar = root.querySelector(".steps");
+    bar.setAttribute("aria-valuenow", index + 1);
+    bar.setAttribute("aria-valuetext", `Step ${index + 1} of ${steps.length}: ${STEP_LABEL[step]}`);
     root.querySelector("#back").disabled = index === 0;
     root.querySelector("#next").textContent = step === "close" ? "Finish" : "Continue";
     stepEl.dataset.step = step;
-    stepEl.innerHTML = `<p class="step-label">${STEP_LABEL[step]}</p>` + (await stepHTML(step));
+    stepEl.innerHTML = `<h1 class="step-label" tabindex="-1">${STEP_LABEL[step]}</h1>` + (await stepHTML(step));
     wireStep(step);
     wireListen();
     stepEl.scrollIntoView({ block: "start" });
+    // Screen readers start reading at the new step's title (not on first open).
+    if (moveFocus) stepEl.querySelector(".step-label").focus({ preventScroll: true });
   };
 
   async function stepHTML(step) {
@@ -356,9 +362,11 @@ async function renderSession(dayNumber, preview = false) {
     // close
     const english = translationsFor(day);
     const extra = day.close ? resolve(book, day.close) : [];
+    let justLit = false;
     if (!preview && !progress.completed[day.day]) {
       P.completeDay(progress, day.day, today());
       saveProgress();
+      justLit = true;
     }
     const starred = progress.starred.includes(day.day);
     const streak = P.currentStreak(progress, today());
@@ -368,7 +376,8 @@ async function renderSession(dayNumber, preview = false) {
       ${extra.length ? `<div class="translation extra">${extra.map((t) => `<p>${esc(t)}</p>`).join("")}<p class="tr-ref">${day.close.c}.${day.close.v}</p></div>` : ""}
       <div class="close-row"><button class="star${starred ? " on" : ""}" id="star" aria-pressed="${starred}">${starred ? "★ Starred" : "☆ Star this verse"}</button>
       <span class="streak">${streak ? `${streak}-day streak` : ""}</span></div>
-      ${chapterMap(day.day)}`;
+      ${justLit ? `<p class="lit-note" role="status">Day ${day.day}'s lamp is lit.</p>` : ""}
+      ${chapterMap(day.day, justLit)}`;
   }
 
   function wireStep(step) {
@@ -430,7 +439,7 @@ async function renderSession(dayNumber, preview = false) {
     }
   };
   cleanup.push(() => stopCosmic());
-  show();
+  show(false);
 }
 
 function renderRecall(el, due) {
@@ -565,13 +574,26 @@ async function renderGallery() {
         })
         .join("")
     : `<p class="g-lead">Paintings you keep appear here.</p>`;
-  root.querySelectorAll("[data-remove]").forEach(
-    (b) =>
-      (b.onclick = async () => {
+  root.querySelector("#gal").insertAdjacentHTML("afterend", `<p class="g-status" id="gal-status" role="status"></p>`);
+  root.querySelectorAll("[data-remove]").forEach((b) => {
+    b.onclick = () => {
+      // Hide it now; delete it only if "Undo" isn't tapped within 6 seconds.
+      const fig = b.closest("figure");
+      fig.hidden = true;
+      const status = root.querySelector("#gal-status");
+      status.innerHTML = `Painting removed. <button class="g-link-btn" id="undo">Undo</button>`;
+      const timer = setTimeout(async () => {
         await Scene.removeFromGallery(Number(b.dataset.remove));
-        renderGallery();
-      }),
-  );
+        if (status.isConnected) status.textContent = "";
+      }, 6000);
+      status.querySelector("#undo").onclick = () => {
+        clearTimeout(timer);
+        fig.hidden = false;
+        status.textContent = "Painting kept.";
+        b.focus();
+      };
+    };
+  });
   cleanup.push(() => urls.forEach((u) => URL.revokeObjectURL(u)));
 }
 
@@ -579,7 +601,7 @@ async function renderGallery() {
 function renderSettings() {
   const check = book ? integrity(book, content.days) : null;
   const voices = Speech.englishVoices();
-  root.innerHTML = `${header("Settings")}
+  root.innerHTML = `${header("Settings", "#/", { settingsLink: false })}
   <section class="set"><h2>The book</h2>
     <p>${book ? `Loaded ${esc(new Date(book.importedAt).toLocaleDateString())}. ${check.exact} of ${check.total} passages found exactly.` : "No PDF loaded yet."}</p>
     ${book ? `<p class="g-status" id="kept">${persisted ? "Kept on this phone permanently." : "This phone may clear the book if the app goes unused for a few weeks. Open it from the Home Screen to keep it."}</p>` : ""}
@@ -594,8 +616,8 @@ function renderSettings() {
     <label class="row"><input type="checkbox" id="recap" ${settings.recap ? "checked" : ""}> Offer a recap of the week's verses on Saturdays and Sundays</label></section>
   <section class="set"><h2>Scenes</h2>
     <p>Paintings come from your own free Cloudflare image function. Enter the passphrase once; the address is already filled in.</p>
-    <label>Address <input id="endpoint" type="url" inputmode="url" placeholder="https://gita-scenes.….workers.dev" value="${esc(settings.endpoint)}"></label>
-    <label>Passphrase <input id="pass" type="password" autocomplete="off" value="${esc(settings.passphrase)}"></label>
+    <label>Address <input id="endpoint" name="scene-address" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://gita-scenes.….workers.dev" value="${esc(settings.endpoint)}"></label>
+    <label>Passphrase <input id="pass" name="scene-passphrase" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(settings.passphrase)}"></label>
     <button class="g-btn" id="save-scenes">Save</button> <span class="g-status" id="scene-saved" role="status"></span></section>
   <section class="set"><h2>Progress</h2>
     <p>${Object.keys(progress.completed).length} of ${content.days.length} days studied · ${progress.starred.length} starred</p>
@@ -657,7 +679,8 @@ function renderSettings() {
       if (data.app !== "gita" || !data.progress?.completed) throw new Error();
       progress = Object.assign(P.emptyProgress(), data.progress);
       saveProgress();
-      $("#prog-status").textContent = "Progress imported.";
+      renderSettings();
+      root.querySelector("#prog-status").textContent = "Progress imported.";
     } catch {
       $("#prog-status").textContent = "That file isn't a Gita progress export.";
     }
@@ -682,7 +705,22 @@ function wireDev() {
 }
 
 // ---------- Routing ----------
+const VIEW_TITLE = {
+  session: "Today's practice",
+  day: "Day",
+  recap: "Weekend recap",
+  verses: "My verses",
+  memorize: "Memorize",
+  gallery: "Gallery",
+  settings: "Settings",
+};
+let firstRoute = true;
 function route() {
+  const name = VIEW_TITLE[(location.hash || "#/").split("/")[1]];
+  document.title = name ? `${name} · Gita` : "Bhagavad Gita";
+  if (!firstRoute) root.focus({ preventScroll: true });
+  firstRoute = false;
+  window.scrollTo(0, 0);
   cleanup.forEach((f) => f());
   cleanup = [];
   Speech.stop();

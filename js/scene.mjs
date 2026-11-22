@@ -133,8 +133,13 @@ export function startCosmic(canvas) {
   let frame = 0;
   let raf = 0;
   const draw = () => {
-    const w = (canvas.width = canvas.clientWidth * devicePixelRatio);
-    const h = (canvas.height = canvas.clientHeight * devicePixelRatio);
+    // Resize only when the frame's size changes (measuring every frame is wasted work).
+    const cw = Math.round(canvas.clientWidth * devicePixelRatio);
+    const ch = Math.round(canvas.clientHeight * devicePixelRatio);
+    if (canvas.width !== cw) canvas.width = cw;
+    if (canvas.height !== ch) canvas.height = ch;
+    const w = cw;
+    const h = ch;
     const cx = w / 2;
     const cy = h * 0.42;
     ctx.clearRect(0, 0, w, h);

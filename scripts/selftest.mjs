@@ -106,6 +106,16 @@ ok(day1.includes("The chapter"), "day 1 includes the chapter intro");
 const progress = await page.evaluate(() => JSON.parse(localStorage.getItem("gita:progress")));
 ok(progress.completed[1] && progress.nextDay === 2, "day 1 recorded as studied; next is day 2");
 ok(progress.streak.count === 1, "streak is 1");
+ok((await count("#step .dot.kindle")) === 1 && (await text("#step .lit-note")).includes("lamp is lit"), "finishing a day lights its lamp on the map");
+ok(
+  (await page.$eval(".steps", (b) => b.getAttribute("aria-valuenow"))) === String(day1.length),
+  "progress bar reports the current step",
+);
+ok(
+  await page.evaluate(() => document.activeElement?.classList.contains("step-label")),
+  "focus moves to each new step's title",
+);
+ok(/· Gita$/.test(await page.title()), "each view sets the page title");
 await page.click("#star");
 ok(
   (await page.evaluate(() => JSON.parse(localStorage.getItem("gita:progress")).starred)).includes(
@@ -180,6 +190,7 @@ for (const view of ["verses", "memorize/1", "gallery", "settings", "recap"]) {
 
 // 7. The book is kept: Settings says so, and a cleared book shows the recovery screen.
 await page.goto(`${BASE}/gita/?dev=1#/settings`, { waitUntil: "networkidle0" });
+ok((await count(".g-top .g-icon")) === 0, "the Settings page has no link to itself");
 ok((await text("#kept")).length > 10, "settings says whether the book is kept permanently");
 ok((await text("#reminder")).includes("7:45"), "settings offers the morning reminder");
 await page.evaluate(
