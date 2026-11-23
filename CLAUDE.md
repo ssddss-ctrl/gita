@@ -12,8 +12,8 @@ written for the app, marked not from the book). One new verse a day, ~100 key ve
 across all 18 chapters in book order, always arriving with context (the thread). Reading
 and listening only (optional memorize mode for starred verses). No reflection questions.
 
-Daily flow: scene (~10 s) → recall (≤3 due verses, spaced 1/3/7/14/30 days) → chapter
-intro (first day of a chapter) → thread (his linking lines / short "mine" bridges, marked)
+Daily flow: recall (≤3 due verses, spaced 1/3/7/14/30 days) → chapter
+intro (first day of a chapter) → thread, with the day's painting at its top (his linking lines / short "mine" bridges, marked)
 → verse (Devanagari, IAST, chant if licensed, his translation) → in his words (selected
 commentary + full-commentary expander) → in daily life (`content/daily-life.json`) → close (verse again, star, chapter map). No streak.
 
@@ -133,3 +133,15 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
   crons; the gate sends only within 50 minutes after each target, so it fires once per slot in
   summer and winter. The evening text allows for having already practised ("If you haven't
   yet…"), because the workflow can't see progress.
+- 2026-11-23: From the owner's first real session (iPhone, Home Screen app):
+  - Listen buttons were silent. `speech.mjs` now starts speech inside the tap, never speaks
+    straight after cancel(), keeps the utterance referenced, reads sentence-sized pieces, no
+    longer forces an en-IN voice, and asks for "playback" audio so the silent switch doesn't
+    mute it (navigator.audioSession, where available). Not testable here; confirmed on the phone.
+  - The owner didn't want a picture to look at and skip. The separate scene step is gone; the
+    painting is the illustration at the top of the thread, fading into the page, and is left
+    out entirely when there is none (chapter 11 always shows its drawn light). Not on the close.
+  - Bug: `[hidden]` was overridden by display rules, so the recall answer and grades showed
+    before the tap. A global `[hidden] { display: none !important }` fixes every case.
+  - Updates: network-first service worker, plus a reload when the app returns to the home
+    screen after 30+ minutes, since iPhone resumes Home Screen apps instead of restarting them.

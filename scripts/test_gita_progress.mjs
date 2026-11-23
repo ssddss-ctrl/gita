@@ -1,6 +1,7 @@
 // Run with: node scripts/test_gita_progress.mjs
 import assert from "assert";
 import * as P from "../js/progress.mjs";
+import { pieces } from "../js/speech.mjs";
 
 let p = P.emptyProgress();
 assert.deepStrictEqual(P.todayPlan(p, 100, "2026-10-22"), { kind: "new", day: 1 });
@@ -40,3 +41,10 @@ assert.deepStrictEqual(P.recapDays(p, "2026-10-22"), []); // Thursday
 p = P.emptyProgress(); p.nextDay = 101;
 assert.deepStrictEqual(P.todayPlan(p, 100, "2026-10-22"), { kind: "finished" });
 console.log("gita progress: all checks passed");
+
+// Read-aloud: text is spoken in sentence-sized pieces (long utterances stall on iPhone).
+const long = "One short sentence. " + "A much longer sentence that goes on and on with many words in it, ".repeat(6) + "and ends here.";
+const parts = pieces(["  Hello   there. How are you?  ", "", long]);
+assert.strictEqual(parts[0], "Hello there. How are you?");
+assert.ok(parts.length > 2 && parts.every((x) => x.length <= 420), "long text is split");
+assert.strictEqual(parts.join(" ").replace(/\s+/g, " "), ["Hello there. How are you?", long].join(" ").replace(/\s+/g, " ").trim());

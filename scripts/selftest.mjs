@@ -107,7 +107,7 @@ async function stepThrough(prefix, expectFirst) {
 }
 
 await page.goto(`${BASE}/gita/?dev=1#/session`, { waitUntil: "networkidle0" });
-const day1 = await stepThrough("day1", "Kurukshetra");
+const day1 = await stepThrough("day1", "The chapter");
 ok(day1.includes("The chapter"), "day 1 includes the chapter intro");
 ok(day1.at(-2) === "In daily life", "the daily-life note comes just before the close");
 const progress = await page.evaluate(() => JSON.parse(localStorage.getItem("gita:progress")));
@@ -134,20 +134,70 @@ const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("gita:pr
 ok(Boolean(saved.completed["1"]), "day 1 saved as completed");
 
 // 3. Days 2 and 3 in preview (dev jump), plus a Chapter 11 day with the cosmic light.
-for (const [day, prefix] of [
-  [2, "day2"],
-  [3, "day3"],
-  [60, "day60-ch11"],
+for (const [day, prefix, first] of [
+  [2, "day2", "The thread"],
+  [3, "day3", "The chapter"],
+  [60, "day60-ch11", "The thread"],
 ]) {
   await page.goto(`${BASE}/gita/?dev=1#/day/${day}`, { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 400));
-  const labels = await stepThrough(prefix, "Kurukshetra");
+  const labels = await stepThrough(prefix, first);
   if (day === 3) ok(labels.includes("The chapter"), "day 3 opens chapter 2 with its intro");
 }
 await page.goto(`${BASE}/gita/?dev=1#/day/60`, { waitUntil: "networkidle0" });
+await page.reload({ waitUntil: "networkidle0" }); // Same address as before: reload to start the day again.
 await new Promise((r) => setTimeout(r, 600));
 ok((await count("#step canvas.cosmic")) === 1, "chapter 11 scene draws the cosmic light");
+ok(
+  await page.$eval("#story-art .art-actions", (a) => getComputedStyle(a).display === "none"),
+  "no Keep / Paint another without a painting of the day",
+);
 await shot("day60-scene");
+
+// The painting is woven into the thread: a saved painting for day 2 sits above the story.
+await page.evaluate(async () => {
+  const c = Object.assign(document.createElement("canvas"), { width: 300, height: 200 });
+  const g = c.getContext("2d");
+  g.fillStyle = "#c98a3a";
+  g.fillRect(0, 0, 300, 200);
+  const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+  await new Promise((resolve, reject) => {
+    const open = indexedDB.open("gita");
+    open.onsuccess = () => {
+      const tx = open.result.transaction("scenes", "readwrite");
+      tx.objectStore("scenes").put({ blob, date: new Date().toISOString() }, 2);
+      tx.oncomplete = () => (open.result.close(), resolve());
+      tx.onerror = reject;
+    };
+    open.onerror = reject;
+  });
+});
+await page.goto(`${BASE}/gita/?dev=1#/day/2`, { waitUntil: "networkidle0" });
+await new Promise((r) => setTimeout(r, 900));
+ok(
+  await page.$eval("#step", (s) => {
+    const art = s.querySelector("#story-art");
+    const label = s.querySelector(".step-label");
+    return (
+      s.dataset.step === "thread" &&
+      art && !art.hidden &&
+      Boolean(art.querySelector("img.scene-img.shown")) &&
+      Boolean(art.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING)
+    );
+  }),
+  "a painting sits at the top of the thread, above the story",
+);
+await shot("thread-painting");
+await page.goto(`${BASE}/gita/?dev=1#/day/3`, { waitUntil: "networkidle0" });
+await new Promise((r) => setTimeout(r, 300));
+await page.click("#next");
+await new Promise((r) => setTimeout(r, 600));
+ok(
+  (await text("#step .step-label")) === "The thread" &&
+    (await page.$eval("#story-art", (f) => f.hidden)),
+  "with no painting, the thread has no empty picture space",
+);
+ok((await count("#step .scene-frame")) === 1 && (await count("[data-step='close'] .scene-frame")) === 0, "the painting lives only in the thread");
 
 // 4. Next morning: day 1 is due for recall before day 2.
 await page.evaluate(() => {
@@ -163,9 +213,15 @@ await page.reload({ waitUntil: "networkidle0" }); // A new morning starts with a
 ok((await text(".g-hero")).includes("Day 2 of 100"), "next morning: home offers day 2");
 ok((await text(".g-meta")).includes("1 verse to recall"), "next morning: one verse to recall");
 await page.goto(`${BASE}/gita/?dev=1#/session`, { waitUntil: "networkidle0" });
-await page.click("#next");
 await page.waitForSelector("#flip");
-ok((await text("#step .step-label")) === "Recall", "recall comes right after the scene");
+ok((await text("#step .step-label")) === "Recall", "recall comes first when a verse is due");
+ok(
+  await page.$eval("#step", (s) => {
+    const shown = (el) => el && getComputedStyle(el).display !== "none";
+    return !shown(s.querySelector(".recall-back")) && !shown(s.querySelector(".grades"));
+  }),
+  "recall hides the answer and grades until the card is tapped",
+);
 await page.click("#flip");
 await shot("recall-flipped");
 await page.click('[data-grade="remembered"]');

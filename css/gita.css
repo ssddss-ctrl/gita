@@ -22,6 +22,10 @@
 * {
   box-sizing: border-box;
 }
+/* "hidden" always wins, even over a class that sets display (flex, block…). */
+[hidden] {
+  display: none !important;
+}
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -72,7 +76,6 @@ button,
   .g-begin.quiet:hover,
   .listen:hover,
   .nav-back:hover:not(:disabled),
-  .scene-actions button:hover,
   .verse-actions button:hover:not(:disabled),
   .grades button:hover,
   .star:hover {
@@ -414,10 +417,6 @@ button,
   width: 100%;
   background: #0b0e24;
 }
-.scene-frame.small {
-  aspect-ratio: 16 / 9;
-  margin-bottom: 18px;
-}
 .scene-gradient {
   position: absolute;
   inset: 0;
@@ -498,12 +497,6 @@ button,
     opacity: 0;
   }
 }
-.scene-actions {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0 4px;
-}
-.scene-actions button,
 .verse-actions button,
 .grades button,
 .star {
@@ -514,6 +507,44 @@ button,
   color: var(--cream);
   font-size: 17px;
   padding: 0 18px;
+}
+
+/* The painting woven into the thread: full width, fading into the page, the story beneath. */
+.story-art {
+  margin: 0 -18px 6px;
+}
+.story-art .scene-frame {
+  border-radius: 0;
+  aspect-ratio: 3 / 2;
+  max-height: 50vh;
+  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+}
+.story-art figcaption {
+  position: relative;
+  margin-top: -30px;
+  padding: 0 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  min-height: 30px;
+}
+.art-status {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 16px;
+}
+.art-status:empty {
+  display: none;
+}
+.art-actions {
+  display: flex;
+  gap: 14px;
+}
+.art-actions .g-link-btn {
+  font-size: 16px;
+  color: var(--muted);
 }
 
 /* Recall */

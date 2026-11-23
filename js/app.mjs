@@ -78,11 +78,11 @@ function wireListen() {
   root.querySelectorAll("[data-listen]").forEach((b) => {
     b.onclick = () => {
       const on = b.getAttribute("aria-pressed") === "true";
-      Speech.stop();
       root
         .querySelectorAll("[data-listen]")
         .forEach((x) => x.setAttribute("aria-pressed", "false"));
-      if (on) return;
+      if (on) return Speech.stop();
+      // speak() stops anything already playing itself, and starts inside this tap (iPhone needs that).
       b.setAttribute("aria-pressed", "true");
       Speech.speak(
         listenTexts.get(b.dataset.listen) || [],
@@ -229,7 +229,7 @@ function translationsFor(day) {
 }
 
 function buildSteps(day, preview) {
-  const steps = ["scene"];
+  const steps = [];
   if (!preview && P.dueReviews(progress, today(), day.day).length) steps.push("recall");
   if (content.chapters[day.chapter].firstDay === day.day && day.intro) steps.push("intro");
   steps.push("thread", "verse", "words");
@@ -239,7 +239,6 @@ function buildSteps(day, preview) {
 }
 
 const STEP_LABEL = {
-  scene: "Kurukshetra",
   recall: "Recall",
   intro: "The chapter",
   thread: "The thread",
@@ -265,7 +264,8 @@ async function renderSession(dayNumber, preview = false) {
     <footer class="step-nav"><button class="nav-back" id="back">Back</button><button class="nav-next" id="next">Continue</button></footer>`;
   const stepEl = root.querySelector("#step");
 
-  // Scene: show a saved painting, or start painting now so it is ready by the close.
+  // The day's painting illustrates the thread (the story so far). It starts painting as the
+  // session opens, so it is usually ready by the time the thread is reached.
   const painting = (async () => {
     sceneBlob = await Scene.savedScene(day.day);
     if (sceneBlob || preview || !scenesReady()) return sceneBlob;
@@ -280,12 +280,61 @@ async function renderSession(dayNumber, preview = false) {
     const s = root.querySelector("#scene-status");
     if (s) s.textContent = text;
   }
-  async function fillFrame(frame) {
-    if (!frame) return;
+  // The painting sits at the top of the thread and fades into the page; the story begins under it.
+  // With no painting at all (scenes not set up, nothing kept), it is simply left out.
+  function storyArtHTML() {
+    return `<figure class="story-art" id="story-art" hidden>
+      ${Scene.frameHTML(day.chapter)}
+      <figcaption><span class="art-status" id="scene-status" role="status"></span>
+        <span class="art-actions" hidden><button class="g-link-btn" id="keep">Keep in gallery</button><button class="g-link-btn" id="regen">Paint another</button></span></figcaption>
+    </figure>`;
+  }
+  async function setupArt() {
+    const fig = stepEl.querySelector("#story-art");
+    if (!fig) return;
+    const frame = fig.querySelector(".scene-frame");
+    const actions = fig.querySelector(".art-actions");
+    const cosmic = day.chapter === 11; // Chapter 11's light is drawn in code, painting or not.
+    const reveal = () => (fig.hidden = false);
     stopCosmic();
-    stopCosmic = Scene.startCosmic(frame.querySelector(".cosmic"));
+    if (cosmic) {
+      reveal();
+      stopCosmic = Scene.startCosmic(frame.querySelector(".cosmic"));
+    }
+    fig.querySelector("#keep").onclick = async () => {
+      if (!sceneBlob) return;
+      await Scene.keep(day, sceneBlob);
+      setSceneStatus("Kept in your gallery.");
+    };
+    fig.querySelector("#regen").onclick = async () => {
+      setSceneStatus("Painting a new scene…");
+      try {
+        sceneBlob = await Scene.generate(day, settings);
+        Scene.showImage(frame, sceneBlob);
+        setSceneStatus("");
+      } catch (e) {
+        setSceneStatus(e.message);
+      }
+    };
+    if (!sceneBlob && scenesReady() && !preview) {
+      reveal();
+      setSceneStatus("Painting today's scene…");
+    }
     const blob = sceneBlob || (await painting) || (await Scene.fallbackImage());
-    if (blob) Scene.showImage(frame, blob);
+    if (!fig.isConnected) return; // Moved on to another step meanwhile.
+    if (blob) {
+      reveal();
+      frame.hidden = false;
+      Scene.showImage(frame, blob);
+      if (!/couldn|not accepted|unexpected/i.test(fig.querySelector("#scene-status").textContent))
+        setSceneStatus("");
+      actions.hidden = !sceneBlob; // Keep / Paint another only for today's own painting.
+    } else if (!cosmic) {
+      // No picture: keep any error message visible, otherwise leave the space out entirely.
+      const message = fig.querySelector("#scene-status").textContent;
+      if (message && !/^Painting/.test(message)) frame.hidden = true;
+      else fig.hidden = true;
+    }
   }
 
   const show = async (moveFocus = true) => {
@@ -301,7 +350,11 @@ async function renderSession(dayNumber, preview = false) {
     root.querySelector("#back").disabled = index === 0;
     root.querySelector("#next").textContent = step === "close" ? "Finish" : "Continue";
     stepEl.dataset.step = step;
-    stepEl.innerHTML = `<h1 class="step-label" tabindex="-1">${STEP_LABEL[step]}</h1>` + (await stepHTML(step));
+    const body = await stepHTML(step);
+    stepEl.innerHTML =
+      (step === "thread" ? storyArtHTML() : "") +
+      `<h1 class="step-label" tabindex="-1">${STEP_LABEL[step]}</h1>` +
+      body;
     wireStep(step);
     wireListen();
     stepEl.scrollIntoView({ block: "start" });
@@ -311,10 +364,6 @@ async function renderSession(dayNumber, preview = false) {
 
   async function stepHTML(step) {
     const ref = `${day.chapter}.${day.verses[0]}`;
-    if (step === "scene")
-      return `${Scene.frameHTML(day.chapter)}
-        <div class="scene-actions"><button id="keep">Keep</button><button id="regen">Paint another</button></div>
-        <p class="g-status" id="scene-status" role="status">${scenesReady() ? "" : "Paintings appear once the scene passphrase is entered in Settings."}</p>`;
     if (step === "recall") return `<div id="recall"></div>`;
     if (step === "intro") {
       const ch = book.chapters[day.chapter];
@@ -377,8 +426,7 @@ async function renderSession(dayNumber, preview = false) {
       justLit = true;
     }
     const starred = progress.starred.includes(day.day);
-    return `${Scene.frameHTML(day.chapter).replace("scene-frame", "scene-frame small")}
-      ${sanskritBlock(ref, { lines: false })}
+    return `${sanskritBlock(ref, { lines: false })}
       <div class="translation">${english.map((t) => `<p>${esc(t)}</p>`).join("")}</div>
       ${extra.length ? `<div class="translation extra">${extra.map((t) => `<p>${esc(t)}</p>`).join("")}<p class="tr-ref">${day.close.c}.${day.close.v}</p></div>` : ""}
       <div class="close-row"><button class="star${starred ? " on" : ""}" id="star" aria-pressed="${starred}">${starred ? "★ Starred" : "☆ Star this verse"}</button></div>
@@ -387,34 +435,7 @@ async function renderSession(dayNumber, preview = false) {
   }
 
   function wireStep(step) {
-    if (step === "scene" || step === "close") fillFrame(stepEl.querySelector(".scene-frame"));
-    if (step === "scene") {
-      stepEl.querySelector("#keep").onclick = async () => {
-        const blob = sceneBlob || (await painting);
-        if (!blob) return setSceneStatus("There's no painting to keep yet.");
-        await Scene.keep(day, blob);
-        setSceneStatus("Kept in your gallery.");
-      };
-      stepEl.querySelector("#regen").onclick = async () => {
-        setSceneStatus("Painting a new scene…");
-        try {
-          sceneBlob = await Scene.generate(day, settings);
-          Scene.showImage(stepEl.querySelector(".scene-frame"), sceneBlob);
-          setSceneStatus("");
-        } catch (e) {
-          setSceneStatus(e.message);
-        }
-      };
-      if (scenesReady() && !sceneBlob) {
-        setSceneStatus("Painting today's scene…");
-        painting.then((b) => {
-          if (b) {
-            Scene.showImage(stepEl.querySelector(".scene-frame"), b);
-            setSceneStatus("");
-          }
-        });
-      }
-    }
+    if (step === "thread") setupArt();
     if (step === "recall") renderRecall(stepEl.querySelector("#recall"), due);
     if (step === "close") {
       const star = stepEl.querySelector("#star");
@@ -743,6 +764,15 @@ function route() {
   if (view === "settings") return renderSettings();
   renderHome();
 }
+
+// A Home Screen app is often resumed, not restarted, so it could keep showing an old version.
+// Coming back after 30+ minutes to the home screen reloads it (never in the middle of a session).
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return (hiddenAt = Date.now());
+  const onHome = !(location.hash || "#/").split("/")[1];
+  if (hiddenAt && Date.now() - hiddenAt > 30 * 60 * 1000 && onHome) location.reload();
+});
 
 // The app's own offline copy (sw.js). Scenes are kept in IndexedDB, not here.
 function registerOfflineCopy() {
