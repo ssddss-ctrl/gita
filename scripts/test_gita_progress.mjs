@@ -1,7 +1,7 @@
 // Run with: node scripts/test_gita_progress.mjs
 import assert from "assert";
 import * as P from "../js/progress.mjs";
-import { pieces } from "../js/speech.mjs";
+import { pieces, quality } from "../js/speech.mjs";
 
 let p = P.emptyProgress();
 assert.deepStrictEqual(P.todayPlan(p, 100, "2026-10-22"), { kind: "new", day: 1 });
@@ -48,3 +48,10 @@ const parts = pieces(["  Hello   there. How are you?  ", "", long]);
 assert.strictEqual(parts[0], "Hello there. How are you?");
 assert.ok(parts.length > 2 && parts.every((x) => x.length <= 420), "long text is split");
 assert.strictEqual(parts.join(" ").replace(/\s+/g, " "), ["Hello there. How are you?", long].join(" ").replace(/\s+/g, " ").trim());
+
+// Voices: Premium first, then Enhanced, then ordinary, novelty voices last.
+const v = (name, voiceURI = "") => ({ name, voiceURI });
+assert.deepStrictEqual(
+  [v("Ava (Premium)"), v("Evan (Enhanced)"), v("Samantha"), v("Zarvox"), v("Zoe", "com.apple.voice.premium.en-US.Zoe")].map(quality),
+  [2, 1, 0, -1, 2],
+);

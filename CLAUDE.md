@@ -145,3 +145,9 @@ structure check, and `npm run validate` (with the PDF) runs the full 12-word sca
     before the tap. A global `[hidden] { display: none !important }` fixes every case.
   - Updates: network-first service worker, plus a reload when the app returns to the home
     screen after 30+ minutes, since iPhone resumes Home Screen apps instead of restarting them.
+- 2026-11-23: The owner found the read-aloud voice robotic. The app now ranks voices (Premium >
+  Enhanced > ordinary > Apple's novelty/robotic voices), uses the best installed one unless a
+  voice is chosen, and Settings explains how to download a free Premium iPhone voice. Web
+  speech stays muted by the ringer switch (confirmed on the phone); Settings says so. Cloud
+  neural voices are ruled out for book text (it never leaves the device); an on-device neural
+  voice (e.g. Kokoro in the browser) is the remaining option if Premium voices aren't enough.

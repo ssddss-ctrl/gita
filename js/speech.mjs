@@ -7,7 +7,7 @@
      and then wait a moment before starting;
    - an utterance can be garbage-collected mid-sentence, so the current one is kept in `current`;
    - long paragraphs can stall, so text is read in sentence-sized pieces;
-   - web speech is muted by the silent switch unless the page asks for "playback" audio. */
+   - web speech is muted by the silent switch; the app tells the reader to turn the ringer on. */
 
 const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
 let queue = [];
@@ -17,8 +17,32 @@ let run = 0; // Each speak() call gets a number, so late events from an old one 
 
 export const supported = () => Boolean(synth);
 
+/** How natural a voice sounds: iPhone's downloadable Premium voices first, then Enhanced. */
+// Apple's novelty and older robotic voices, listed last so they are never picked by default.
+const ROBOTIC =
+  /^(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph|fred|kathy|eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley)\b/i;
+
+export function quality(v) {
+  const id = `${v.name} ${v.voiceURI}`;
+  if (/premium|neural|natural/i.test(id)) return 2;
+  if (/enhanced|siri/i.test(id)) return 1;
+  if (ROBOTIC.test(v.name)) return -1;
+  return 0;
+}
+
+/** English voices, the most natural first. */
 export function englishVoices() {
-  return synth ? synth.getVoices().filter((v) => /^en(-|_|$)/i.test(v.lang)) : [];
+  if (!synth) return [];
+  return synth
+    .getVoices()
+    .filter((v) => /^en(-|_|$)/i.test(v.lang))
+    .sort((a, b) => quality(b) - quality(a) || Number(b.default) - Number(a.default));
+}
+
+/** The voice to use: the one chosen in Settings, or else the most natural one installed. */
+export function pickVoice(voiceName = "") {
+  const voices = englishVoices();
+  return voices.find((v) => v.name === voiceName) || voices[0] || null;
 }
 
 function finish() {
@@ -59,19 +83,14 @@ export function speak(paragraphs, { voiceName = "", rate = 1 } = {}, ended = () 
   const wasPlaying = synth && (synth.speaking || synth.pending);
   stop();
   if (!synth) return ended();
-  // Ask iPhone to treat this as media playback, so the silent switch doesn't mute it.
+  // Ask for media playback. (On current iPhones the silent switch still mutes web speech.)
   try {
     if (navigator.audioSession) navigator.audioSession.type = "playback";
   } catch {}
   const mine = run;
   queue = pieces(paragraphs);
   onEnd = ended;
-  const voices = englishVoices();
-  const voice =
-    voices.find((v) => v.name === voiceName) ||
-    voices.find((v) => v.default) ||
-    voices.find((v) => v.lang === navigator.language) ||
-    null;
+  const voice = pickVoice(voiceName);
   const next = () => {
     if (mine !== run) return;
     const text = queue.shift();

@@ -628,6 +628,8 @@ async function renderGallery() {
 function renderSettings() {
   const check = book ? integrity(book, content.days) : null;
   const voices = Speech.englishVoices();
+  const best = Speech.pickVoice("");
+  const hasGood = voices.some((v) => Speech.quality(v) > 0);
   root.innerHTML = `${header("Settings", "#/", { settingsLink: false })}
   <section class="set"><h2>The book</h2>
     <p>${book ? `Loaded ${esc(new Date(book.importedAt).toLocaleDateString())}. ${check.exact} of ${check.total} passages found exactly.` : "No PDF loaded yet."}</p>
@@ -635,7 +637,9 @@ function renderSettings() {
     <label class="g-btn file">${book ? "Reload the PDF" : "Choose the PDF"}<input type="file" id="pdf" accept="application/pdf,.pdf" hidden></label>
     <p class="g-status" id="pdf-status" role="status"></p></section>
   <section class="set"><h2>Read-aloud</h2>
-    <label>Voice <select id="voice"><option value="">Default English voice</option>${voices.map((v) => `<option ${v.name === settings.voice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
+    <label>Voice <select id="voice"><option value="">Most natural voice on this phone${best ? ` (${esc(best.name)})` : ""}</option>${voices.map((v) => `<option value="${esc(v.name)}" ${v.name === settings.voice ? "selected" : ""}>${esc(v.name)}${Speech.quality(v) > 0 ? " ★" : ""}</option>`).join("")}</select></label>
+    ${hasGood ? "" : `<p class="g-status">For a far more natural voice, download one free: on iPhone, Settings → Accessibility → Spoken Content → Voices → English, then pick a voice marked Premium (Ava, Zoe or Evan sound good). It appears here with a ★ and is used automatically.</p>`}
+    <p class="g-status">Read-aloud is silent when the phone is on silent; turn the ringer on to listen.</p>
     <label>Speed <input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="${settings.rate}"> <span id="rate-val">${settings.rate}×</span></label>
     <button class="g-btn" id="test-voice">Try the voice</button></section>
   <section class="set" id="reminder"><h2>Reminders</h2></section>
